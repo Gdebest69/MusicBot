@@ -22,6 +22,12 @@ import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException.Severity;
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
+
+import jdash.client.GDClient;
+import jdash.client.exception.GDClientException;
+import jdash.common.LevelBrowseMode;
+import jdash.common.entity.GDLevel;
+
 import com.jagrosh.jdautilities.command.Command;
 import com.jagrosh.jdautilities.command.CommandEvent;
 import com.jagrosh.jdautilities.menu.ButtonMenu;
@@ -32,6 +38,8 @@ import com.jagrosh.jmusicbot.commands.DJCommand;
 import com.jagrosh.jmusicbot.commands.MusicCommand;
 import com.jagrosh.jmusicbot.playlist.PlaylistLoader.Playlist;
 import com.jagrosh.jmusicbot.utils.FormatUtil;
+
+import java.lang.reflect.Field;
 import java.util.concurrent.TimeUnit;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
@@ -58,7 +66,7 @@ public class PlayCmd extends MusicCommand
         this.aliases = bot.getConfig().getAliases(this.name);
         this.beListening = true;
         this.bePlaying = false;
-        this.children = new Command[]{new PlaylistCmd(bot)};
+        this.children = new Command[]{new PlaylistCmd(bot), new GDPlayCmd(bot)};
     }
 
     @Override
@@ -260,4 +268,58 @@ public class PlayCmd extends MusicCommand
             });
         }
     }
+
+    public class GDPlayCmd extends MusicCommand
+    {
+        GDClient gdClient;
+
+        public GDPlayCmd(Bot bot) {
+            super(bot);
+            this.name = "gd";
+            this.arguments = "<level name>";
+            this.help = "searches and plays the song of the Geometry Dash level with the provided level name from youtube";
+            this.beListening = true;
+            this.bePlaying = false;
+            this.gdClient = GDClient.create();
+        }
+
+        @Override
+        public void doCommand(CommandEvent event) {
+            if (event.getArgs().isEmpty()) {
+                event.replyError("Please include a level name.");
+                return;
+            }
+            event.getChannel()
+                    .sendMessage(loadingEmoji + " Searching for Geometry Dash level **" + event.getArgs() + "**...")
+                    .queue(m -> {
+                        try {
+                            GDLevel level = gdClient.browseLevels(LevelBrowseMode.SEARCH, event.getArgs(), null, 0)
+                                    .next().block();
+                            String song = level.song().get().title();
+                            String args = song.startsWith("-") && song.endsWith("-")
+                                    ? song.substring(1, song.length() - 1) + " by " + level.song().get().artist()
+                                    : song + " by " + level.song().get().artist();
+                            m.editMessage(
+                                    "Found Geometry Dash level **" + level.name() + "** with song **" + song + "**"
+                                            + " by **" + level.song().get().artist() + "**")
+                                    .queue();
+                            try {
+                                Field field = CommandEvent.class.getDeclaredField("args"); // Access the private field
+                                field.setAccessible(true); // Bypass the private modifier
+                                field.set(event, args); // Set the new value
+                            } catch (NoSuchFieldException | IllegalAccessException e) {
+                                m.editMessage("Error").queue();
+                                return;
+                            }
+                            event.reply(loadingEmoji + " Loading... `[" + args + "]`", m1 -> bot.getPlayerManager()
+                                    .loadItemOrdered(event.getGuild(), args, new ResultHandler(m1, event, false)));
+                        } catch (GDClientException e) {
+                            m.editMessage("Could not find Geometry Dash level with name **" + event.getArgs() + "**")
+                                    .queue();
+                            return;
+                        }
+                    });
+        }
+    }
+
 }

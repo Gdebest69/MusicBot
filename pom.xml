@@ -119,7 +119,11 @@
             <version>5.9.2</version>
         </dependency>
 
-
+        <dependency>
+            <groupId>com.alex1304.jdash</groupId>
+            <artifactId>jdash-client</artifactId>
+            <version>4.0.5</version> <!-- replace with latest version -->
+        </dependency>
 
         <!-- Testing Dependencies -->
         <dependency>
