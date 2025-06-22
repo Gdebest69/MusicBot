@@ -66,7 +66,7 @@ public class PlayCmd extends MusicCommand
         this.aliases = bot.getConfig().getAliases(this.name);
         this.beListening = true;
         this.bePlaying = false;
-        this.children = new Command[]{new PlaylistCmd(bot), new GDPlayCmd(bot)};
+        this.children = new Command[]{new PlaylistCmd(bot)};
     }
 
     @Override
@@ -275,9 +275,10 @@ public class PlayCmd extends MusicCommand
 
         public GDPlayCmd(Bot bot) {
             super(bot);
-            this.name = "gd";
+            this.name = "gdplay";
             this.arguments = "<level name>";
             this.help = "searches and plays the song of the Geometry Dash level with the provided level name from youtube";
+            this.aliases = bot.getConfig().getAliases(this.name);
             this.beListening = true;
             this.bePlaying = false;
             this.gdClient = GDClient.create();
@@ -311,8 +312,7 @@ public class PlayCmd extends MusicCommand
                                 m.editMessage("Error").queue();
                                 return;
                             }
-                            event.reply(loadingEmoji + " Loading... `[" + args + "]`", m1 -> bot.getPlayerManager()
-                                    .loadItemOrdered(event.getGuild(), args, new ResultHandler(m1, event, false)));
+                            PlayCmd.this.doCommand(event);
                         } catch (GDClientException e) {
                             m.editMessage("Could not find Geometry Dash level with name **" + event.getArgs() + "**")
                                     .queue();

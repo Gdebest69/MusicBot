@@ -183,6 +183,7 @@ public class JMusicBot
         aboutCommand.setReplacementCharacter("\uD83C\uDFB6"); // 🎶
         
         // set up the command client
+        PlayCmd playCmd = new PlayCmd(bot);
         CommandClientBuilder cb = new CommandClientBuilder()
                 .setPrefix(config.getPrefix())
                 .setAlternativePrefix(config.getAltPrefix())
@@ -197,7 +198,8 @@ public class JMusicBot
                         
                         new LyricsCmd(bot),
                         new NowplayingCmd(bot),
-                        new PlayCmd(bot),
+                        playCmd,
+                        playCmd.new GDPlayCmd(bot),
                         new PlaylistsCmd(bot),
                         new QueueCmd(bot),
                         new RemoveCmd(bot),
